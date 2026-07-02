@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="pico.haxx">
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+
+        android:allowBackup="true"
+        android:debuggable="true"
+        android:label="picohaxx boot"
+        android:hasCode="true"
+        android:extractNativeLibs="true"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+
+        <meta-data android:name="pvr.app.type" android:value="vr" />
+        <meta-data android:name="pvr.app.high_performance" android:value="true"/>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="pvr.intent.category.VR"/>
+            </intent-filter>
+        </activity>
+
+         <receiver android:name="pico.haxx.BootReceiver" android:enabled="true" android:exported="true" android:directBootAware="true">
+             <intent-filter>
+                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                 <!-- <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" /> -->
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
+
