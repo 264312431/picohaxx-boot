@@ -12,18 +12,17 @@ import java.net.Socket
 object CommandBroker {
     private const val TAG = "CommandBroker"
     private const val BROKER_HOST = "127.0.0.1"
-    private const val BROKER_PORT = 9000  // Port where socat serves: adb shell -t
+    private const val BROKER_PORT = 9000  // Port where socat serves: adb shell via sh -c
 
     /**
      * Connects to the socat-wrapped adb shell broker on localhost:9000,
      * executes a command, and streams output via onLog.
      *
      * The socat listener (started by libscript.so via libsupaexec.so) serves:
-     *   socat TCP-LISTEN:9000,fork,reuseaddr EXEC:"adb shell -t",pty,stderr,setsid,sigint,sane
+     *   socat TCP-LISTEN:9000,fork,reuseaddr EXEC:"adb shell sh -c $(cat -)"
      *
-     * Each connection gets a fresh adb shell session. We send the command,
-     * read output until EOF (clean termination when adb shell closes the connection),
-     * and return.
+     * This is a non-interactive, one-shot mode: each connection reads one line of input,
+     * executes it as a shell command, and closes.
      */
     fun executeCommand(command: String, onLog: (String) -> Unit) {
         try {
@@ -57,13 +56,32 @@ object CommandBroker {
     }
 
     /**
+     * Executes a binary payload (e.g., libpicohaxx.so) via adb shell through the broker.
+     * This is equivalent to running: adb shell /path/to/payload
+     */
+    fun executePayload(context: Context, payloadName: String, onLog: (String) -> Unit) {
+        try {
+            val nativeDir = context.applicationInfo.nativeLibraryDir
+            val payloadPath = "$nativeDir/$payloadName"
+            
+            Log.d(TAG, "Executing payload: $payloadPath")
+            
+            // Execute the payload via adb shell
+            executeCommand(payloadPath, onLog)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to execute payload", e)
+            onLog("[-] Failed to execute payload: ${e.message}")
+        }
+    }
+
+    /**
      * Attempts to start the privileged broker by executing libscript.so via libsupaexec.so.
      *
      * libscript.so is a bash script that:
      *   1. Sets up ADB_SERVER_SOCKET and ANDROID_SERIAL
      *   2. Starts adb server
      *   3. Connects to the target device
-     *   4. Starts socat to serve "adb shell -t" over TCP:9000
+     *   4. Starts socat to serve "adb shell sh -c $(cat -)" over TCP:9000 (non-interactive oneshot mode)
      *
      * libsupaexec.so handles the privilege escalation.
      *
