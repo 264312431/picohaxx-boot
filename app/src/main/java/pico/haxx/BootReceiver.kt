@@ -9,10 +9,8 @@ import kotlin.concurrent.thread
 
 val tag="pico.haxx.boot"
 
-
-
 class BootReceiver : BroadcastReceiver() {
-override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(context: Context, intent: Intent) {
         Log.e(tag, "======================================================")
         Log.e(tag, "🔥 RECEIVER Action: ${intent.action}")
         Log.e(tag, "======================================================")
@@ -30,28 +28,35 @@ override fun onReceive(context: Context, intent: Intent) {
             }
 
             // Gate the execution using our config from DE storage
+            // Default to TRUE on fresh install (data cleared)
             val prefs = safeContext.getSharedPreferences("boot_config", Context.MODE_PRIVATE)
-            //if (!prefs.getBoolean("run_on_boot", false)) {
-            //    Log.e(tag, "[-] 'Run on boot' is disabled in config. Exiting.")
-             //   return
-           // }
+            if (!prefs.getBoolean("run_on_boot", true)) {
+                Log.e(tag, "[-] 'Run on boot' is disabled in config. Exiting.")
+                return
+            }
 
-            Log.e(tag, "[*] pivoting to adb shell execution")
+            Log.e(tag, "[*] 'Run on boot' enabled. Starting broker and payload...")
             val pendingResult = goAsync()
             thread(start = true) {
                 try {
-                    val lib= safeContext.applicationInfo.nativeLibraryDir
-                    val scriptPath = lib + "/libscript.so"
-                    val process = ProcessBuilder(lib+"/libsupaexec.so", "/system/bin/sh", scriptPath).start()
-                    //val process = ProcessBuilder("/system/bin/sh", scriptPath).start()
-                    Log.e(tag, "[+] bg-Thread running, waiting for execution...")
+                    // Start the broker daemon (socat on port 9000)
+                    Log.e(tag, "[*] Starting daemon via libscript...")
+                    CommandBroker.startDaemon(safeContext) { line ->
+                        Log.e(tag, "[daemon] $line")
+                    }
 
-                    // Block the thread until the binary finishes
-                    val exitCode = process.waitFor()
-                    Log.e(tag, "[+] supaexec finished with exit code: $exitCode")
-                    Thread.sleep(2_000)
+                    // Give the broker time to start
+                    Thread.sleep(3_000)
+
+                    // Execute the payload via the broker
+                    Log.e(tag, "[*] Executing payload (libpicohaxx.so) via broker...")
+                    CommandBroker.executePayload(safeContext, "libpicohaxx.so") { line ->
+                        Log.e(tag, "[payload] $line")
+                    }
+
+                    Log.e(tag, "[+] Payload execution complete.")
                 } catch (e: Exception) {
-                    Log.e(tag, "[-] bg-Thread running crashed!", e)
+                    Log.e(tag, "[-] bg-Thread crashed!", e)
                 } finally {
                     // NOW we tell Android we are done.
                     pendingResult.finish()
@@ -62,4 +67,4 @@ override fun onReceive(context: Context, intent: Intent) {
             Log.e(tag, "💥 FATAL CRASH IN BOOTRECEIVER!", t)
         }
     }
-    }
+}
