@@ -1,60 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/scrollView"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- Control buttons (always visible at top) -->
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="#f0f0f0">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/btnStartDaemon"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:spacing="8dp">
+            android:text="Start Daemon"
+            android:layout_margin="4dp"
+            android:textSize="12sp" />
 
-            <Button
-                android:id="@+id/btnStartDaemon"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Start Daemon"
-                android:layout_margin="4dp" />
-
-            <Button
-                android:id="@+id/btnCmdWhoami"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="whoami"
-                android:layout_margin="4dp" />
-
-            <Button
-                android:id="@+id/btnCmdDmesg"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="dmesg"
-                android:layout_margin="4dp" />
-        </LinearLayout>
-
-        <CheckBox
-            android:id="@+id/cbRunOnBoot"
-            android:layout_width="wrap_content"
+        <Button
+            android:id="@+id/btnCmdWhoami"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="Run on boot"
-            android:layout_margin="8dp" />
+            android:text="whoami"
+            android:layout_margin="4dp"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnCmdDmesg"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="dmesg"
+            android:layout_margin="4dp"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Checkbox -->
+    <CheckBox
+        android:id="@+id/cbRunOnBoot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Run on boot"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp" />
+
+    <!-- Scrollable console output (takes remaining space) -->
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <TextView
             android:id="@+id/tvConsole"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceSmall"
-            android:paddingTop="8dp"
+            android:padding="8dp"
             android:textIsSelectable="true"
-            android:fontFamily="monospace" />
-    </LinearLayout>
-</ScrollView>
+            android:fontFamily="monospace"
+            android:background="#1e1e1e"
+            android:textColor="#00ff00" />
+    </ScrollView>
+</LinearLayout>
