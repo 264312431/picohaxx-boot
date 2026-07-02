@@ -1,44 +1,32 @@
 #!/system/bin/sh
 log -t pico.haxx.boot LIBSCRIPT.SO
 
-# if [ -z "$_LOGWRAPPED" ]; then
-#     export _LOGWRAPPED=1
-#     export scriptdir="$(cd "$(dirname "$0")" && pwd)"
-#     stub="$scriptdir/logwrapperhaxx__libscript.so"   # exec "$@"
-#     logwrapper "$stub" "$0" "$@"
-#     exit 0
-# fi
-# log -t pico.haxx.boot LIBSCRIPT.SO WRAPPED
-# /data/local/tmp/exec/lets-boot.pico &
-
 export PACKAGE="pico.haxx"
 export SERIAL="localhost:5555"
 export LIBDIR=$(pm list packages -u -f $PACKAGE | grep -ioE "/.*/" | head -n 1)lib/arm64
 export ADB=$LIBDIR/ladb.so
-export PAYLOAD=$LIBDIR/libpicohaxx.so
+export SOCAT=$LIBDIR/socat
 
-// essential, because rooted adbd will hog port 3057!
+# Essential: rooted adbd will hog port 3057!
 export ADB_SERVER_SOCKET=tcp:localhost:1234
-
-# /data/local/tmp/supaexec $PAYLOAD 
-# $PAYLOAD 
-# exit
+export ANDROID_SERIAL="$SERIAL"
 
 export HOME=/data/data/$PACKAGE
 mkdir $HOME 2>/dev/null
 mkdir $HOME/.android 2>/dev/null
 cd $HOME
 
-log -t pico.haxx.boot.LIBSCRIPT.SO "ADB:$ADB LIBDIR:$LIBDIR PAYLOAD: $PAYLOAD HOME: $HOME PWD: $(pwd)"
+log -t pico.haxx.boot.LIBSCRIPT.SO "ADB:$ADB LIBDIR:$LIBDIR HOME:$HOME"
+
 $ADB start-server
 
 for x in {1..20}; do
-    echo -e "$ADB connect $SERIAL, try $x/20"
-    $ADB connect $SERIAL||break
-done;
+    echo -e "[*] $ADB connect $SERIAL, try $x/20"
+    $ADB connect $SERIAL && break
+done
 
-echo CONNECTED
+echo "[+] CONNECTED"
 
-# $ADB devices
-$ADB -s $SERIAL shell "setsid nohup $PAYLOAD  & >/dev/null 2>&1 &" 
-exit 0
+# Start socat: fork a new shell for each connection serving adb shell -t over TCP:9000
+log -t pico.haxx.boot.LIBSCRIPT.SO "Starting socat on port 9000 serving adb shell"
+$SOCAT TCP-LISTEN:9000,fork,reuseaddr EXEC:"$ADB shell -t",pty,stderr,setsid,sigint,sane
