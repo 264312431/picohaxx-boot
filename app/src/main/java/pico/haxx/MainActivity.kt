@@ -13,9 +13,12 @@ class MainActivity : Activity() {
 
     private lateinit var tvConsole: TextView
     private lateinit var btnStartDaemon: Button
+    private lateinit var btnRun: Button
     private lateinit var btnCmdWhoami: Button
     private lateinit var btnCmdDmesg: Button
     private lateinit var cbRunOnBoot: CheckBox
+    private lateinit var scrollView: ScrollView
+    private lateinit var ansiParser: AnsiColorParser
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,10 +26,12 @@ class MainActivity : Activity() {
 
         tvConsole = findViewById(R.id.tvConsole)
         btnStartDaemon = findViewById(R.id.btnStartDaemon)
+        btnRun = findViewById(R.id.btnRun)
         btnCmdWhoami = findViewById(R.id.btnCmdWhoami)
         btnCmdDmesg = findViewById(R.id.btnCmdDmesg)
         cbRunOnBoot = findViewById(R.id.cbRunOnBoot)
-        val scrollView = findViewById<ScrollView>(R.id.scrollView)
+        scrollView = findViewById(R.id.scrollView)
+        ansiParser = AnsiColorParser()
 
         // Important: Save config to Device Protected Storage so the BootReceiver
         // can read it during Direct Boot (before the user enters their PIN)
@@ -41,10 +46,15 @@ class MainActivity : Activity() {
             prefs.edit().putBoolean("run_on_boot", isChecked).apply()
         }
 
-        // Start the privileged script that should install/start the broker on the device.
+        // Start the privileged broker
         btnStartDaemon.setOnClickListener {
             appendToConsole("[*] Starting daemon via libscript...\n")
             CommandBroker.startDaemon(this) { appendToConsole(it) }
+        }
+
+        // Run the payload binary (libpicohaxx.so)
+        btnRun.setOnClickListener {
+            dispatchPayload("libpicohaxx.so")
         }
 
         btnCmdWhoami.setOnClickListener {
@@ -71,18 +81,32 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun dispatchPayload(payloadName: String) {
+        appendToConsole("\n--- Running payload: $payloadName ---\n")
+        toggleButtons(false)
+
+        thread(start = true) {
+            CommandBroker.executePayload(this, payloadName) { line ->
+                appendToConsole(line)
+            }
+
+            runOnUiThread {
+                toggleButtons(true)
+            }
+        }
+    }
+
     private fun appendToConsole(text: String) {
-        val ansiParser = AnsiColorParser()
         val styled = ansiParser.parse(text + "\n")
         runOnUiThread {
             tvConsole.append(styled)
-            val scrollView = findViewById<ScrollView>(R.id.scrollView)
             scrollView.post { scrollView.fullScroll(ScrollView.FOCUS_DOWN) }
         }
     }
 
     private fun toggleButtons(enabled: Boolean) {
         btnStartDaemon.isEnabled = enabled
+        btnRun.isEnabled = enabled
         btnCmdWhoami.isEnabled = enabled
         btnCmdDmesg.isEnabled = enabled
     }
