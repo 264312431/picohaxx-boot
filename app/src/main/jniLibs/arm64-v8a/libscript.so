@@ -27,6 +27,7 @@ done
 
 echo "[+] CONNECTED"
 
-# Start socat: fork a new shell for each connection serving adb shell -t over TCP:9000
-log -t pico.haxx.boot.LIBSCRIPT.SO "Starting socat on port 9000 serving adb shell"
-$SOCAT TCP-LISTEN:9000,fork,reuseaddr EXEC:"$ADB shell -t",pty,stderr,setsid,sigint,sane
+# Start socat: non-interactive oneshot mode
+# Each connection reads stdin as a single command and exits
+log -t pico.haxx.boot.LIBSCRIPT.SO "Starting socat on port 9000 serving adb shell (oneshot mode)"
+$SOCAT TCP-LISTEN:9000,fork,reuseaddr EXEC:"$ADB shell sh -c \$(cat -)"
